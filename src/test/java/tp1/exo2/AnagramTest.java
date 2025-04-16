@@ -1,8 +1,6 @@
 package tp1.exo2;
 
 import org.junit.jupiter.api.Test;
-import tp1.exo2.AnagramCorrige;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class AnagramTest {
@@ -30,9 +28,15 @@ public class AnagramTest {
     // ❌ Tests sur la classe fautive
     @Test
     public void testAnagramOriginal_Exception() {
-        assertThrows(StringIndexOutOfBoundsException.class, () -> {
-            Anagram.isAnagram("chien", "niche");  // Provoque une exception avec la mauvaise boucle
+        // Utilise une chaîne simple pour forcer le dépassement d'indice
+        String s1 = "abc";
+        String s2 = "cab";
+
+        Exception exception = assertThrows(StringIndexOutOfBoundsException.class, () -> {
+            Anagram.isAnagram(s1, s2);
         });
+
+        System.out.println("Exception message (Anagram Original): " + exception.getMessage());
     }
 
     @Test
