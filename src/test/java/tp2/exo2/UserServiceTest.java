@@ -2,60 +2,74 @@ package tp2.exo2;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-// Utilise le runner de Mockito pour initialiser automatiquement les mocks
 @RunWith(MockitoJUnitRunner.class)
-
 public class UserServiceTest {
 
     @Mock
-    private UtilisateurApi utilisateurApiMock; // Le service API mocké
+    private UtilisateurApi utilisateurApiMock;
 
-    @Test
-    public void testCreerUtilisateur() throws ServiceException {
-        // --------------------------
-        // 🧪 Arrange : Préparation
-        // --------------------------
-        // Création d'un utilisateur factice
-        Utilisateur utilisateur = new Utilisateur("Jean", "Dupont", "jeandupont@email.com");
+    // 1. Exception lors de la création
+    @Test(expected = ServiceException.class)
+    public void testCreationUtilisateurEchoue() throws ServiceException {
+        Utilisateur user = new Utilisateur("Samir", "Fail", "fail@email.com");
 
-        // Création du service à tester avec injection du mock
+        doThrow(new ServiceException("Échec de la création")).when(utilisateurApiMock)
+                .creerUtilisateur(any(Utilisateur.class));
+
         UserService userService = new UserService(utilisateurApiMock);
-
-        // --------------------------
-        // 🎯 Act : Action
-        // --------------------------
-        userService.creerUtilisateur(utilisateur);
-
-        // --------------------------
-        // ✅ Assert : Vérifications
-        // --------------------------
-        // Vérifie que l'appel à l'API a bien eu lieu avec le bon utilisateur
-        verify(utilisateurApiMock).creerUtilisateur(utilisateur);
-
-        // Vérifie qu'aucune autre interaction n'a été faite avec le mock
-        verifyNoMoreInteractions(utilisateurApiMock);
+        userService.creerUtilisateur(user);
     }
 
-    @Test(expected = ServiceException.class)
-    public void testCreerUtilisateur_exception() throws ServiceException {
-        // --------------------------
-        // 🧪 Arrange
-        // --------------------------
-        Utilisateur utilisateur = new Utilisateur("Erreur", "Test", "erreur@test.com");
-
-        // On configure le mock pour lancer une exception
-        doThrow(new ServiceException("Erreur API")).when(utilisateurApiMock).creerUtilisateur(utilisateur);
+    // 2. Erreur de validation
+    @Test(expected = IllegalArgumentException.class)
+    public void testErreurValidationUtilisateur() throws ServiceException {
+        Utilisateur user = new Utilisateur("Ali", "", ""); // Invalide
 
         UserService userService = new UserService(utilisateurApiMock);
+        userService.creerUtilisateur(user);
 
-        // --------------------------
-        // 🎯 Act
-        // --------------------------
-        userService.creerUtilisateur(utilisateur); // Doit lever une exception
+        verify(utilisateurApiMock, never()).creerUtilisateur(any(Utilisateur.class));
+    }
+
+    // 3. Vérification de l’ID après appel
+    @Test
+    public void testAttributionIdUtilisateur() throws ServiceException {
+        Utilisateur user = new Utilisateur("Nadia", "Lounis", "nadia@email.com");
+        int idUtilisateur = 123;
+
+        doAnswer(invocation -> {
+            Utilisateur arg = invocation.getArgument(0);
+            arg.setId(idUtilisateur);
+            return true;
+        }).when(utilisateurApiMock).creerUtilisateur(any(Utilisateur.class));
+
+        UserService userService = new UserService(utilisateurApiMock);
+        userService.creerUtilisateur(user);
+
+        assertEquals(idUtilisateur, user.getId());
+    }
+
+    // 4. Capture des arguments envoyés
+    @Test
+    public void testCaptorArgumentsUtilisateur() throws ServiceException {
+        Utilisateur user = new Utilisateur("Karim", "Ziani", "kziani@email.com");
+
+        ArgumentCaptor<Utilisateur> argumentCaptor = ArgumentCaptor.forClass(Utilisateur.class);
+        UserService userService = new UserService(utilisateurApiMock);
+        userService.creerUtilisateur(user);
+
+        verify(utilisateurApiMock).creerUtilisateur(argumentCaptor.capture());
+
+        Utilisateur utilisateurCapture = argumentCaptor.getValue();
+        assertEquals("Karim", utilisateurCapture.getPrenom());
+        assertEquals("Ziani", utilisateurCapture.getNom());
+        assertEquals("kziani@email.com", utilisateurCapture.getEmail());
     }
 }

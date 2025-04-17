@@ -1,77 +1,83 @@
 package tp2.exo3;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.Mockito;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
 
-@RunWith(MockitoJUnitRunner.class)
 public class UserServiceTest {
 
-    @Mock
     private UtilisateurApi utilisateurApiMock;
+    private UserService userService;
 
-    // 1. Exception lors de la création
-    @Test(expected = ServiceException.class)
-    public void testCreationUtilisateurEchoue() throws ServiceException, tp2.exo2.ServiceException {
+    @BeforeEach
+    void setUp() {
+        utilisateurApiMock = Mockito.mock(UtilisateurApi.class);
+        userService = new UserService(utilisateurApiMock);
+    }
+
+    // 1. Test d’exception lors de la création (mock retour false)
+    @Test
+    void testCreationUtilisateurEchoue() throws ServiceException, tp2.exo2.ServiceException {
         Utilisateur user = new Utilisateur("Samir", "Fail", "fail@email.com");
 
-        doThrow(new ServiceException("Échec de la création de l'utilisateur"))
-                .when(utilisateurApiMock).creerUtilisateur(user);
+        when(utilisateurApiMock.creerUtilisateur(any(tp2.exo3.Utilisateur.class))).thenReturn(false);
 
-        UserService userService = new UserService(utilisateurApiMock);
-        userService.creerUtilisateur(user);
+        ServiceException exception = assertThrows(ServiceException.class, () -> {
+            userService.creerUtilisateur(user);
+        });
+
+        assertEquals("Création de l'utilisateur échouée", exception.getMessage());
     }
 
-    // 2. Erreur de validation
-    @Test(expected = IllegalArgumentException.class)
-    public void testErreurValidationUtilisateur() throws ServiceException, tp2.exo2.ServiceException {
-        Utilisateur user = new Utilisateur("Ali", "", ""); // invalide
-
-        UserService userService = new UserService(utilisateurApiMock);
-        userService.creerUtilisateur(user);
-
-        verify(utilisateurApiMock, never()).creerUtilisateur(any(Utilisateur.class));
-    }
-
-    // 3. Vérification de l’ID après appel
+    // 2. Test de validation échouée (champs vides)
     @Test
-    public void testAttributionIdUtilisateur() throws ServiceException, tp2.exo2.ServiceException {
+    void testErreurValidationUtilisateur() throws tp2.exo2.ServiceException, ServiceException {
+        Utilisateur user = new Utilisateur("Ali", "", ""); // nom et email invalides
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            userService.creerUtilisateur(user);
+        });
+
+        assertEquals("Champs utilisateur invalides", exception.getMessage());
+        verify(utilisateurApiMock, never()).creerUtilisateur((tp2.exo3.Utilisateur) any());
+    }
+
+    // 3. Test d’attribution d’ID par l’API mockée
+    @Test
+    void testAttributionIdUtilisateur() throws ServiceException, tp2.exo2.ServiceException {
         Utilisateur user = new Utilisateur("Nadia", "Lounis", "nadia@email.com");
+
         int idUtilisateur = 123;
-
         doAnswer(invocation -> {
-            Utilisateur arg = invocation.getArgument(0);
-            arg.setId(idUtilisateur);
+            Utilisateur u = invocation.getArgument(0);
+            u.setId(idUtilisateur);
             return true;
-        }).when(utilisateurApiMock).creerUtilisateur(any(Utilisateur.class));
+        }).when(utilisateurApiMock).creerUtilisateur(any(tp2.exo3.Utilisateur.class));
 
-        UserService userService = new UserService(utilisateurApiMock);
         userService.creerUtilisateur(user);
 
         assertEquals(idUtilisateur, user.getId());
     }
 
-    // 4. Capturer les arguments
+    // 4. Test avec ArgumentCaptor pour vérifier les bons champs
     @Test
-    public void testCaptorArgumentsUtilisateur() throws ServiceException, tp2.exo2.ServiceException {
+    void testCaptorArgumentsUtilisateur() throws ServiceException, tp2.exo2.ServiceException {
         Utilisateur user = new Utilisateur("Karim", "Ziani", "kziani@email.com");
 
-        ArgumentCaptor<Utilisateur> argumentCaptor = ArgumentCaptor.forClass(Utilisateur.class);
-        when(utilisateurApiMock.creerUtilisateur(any(Utilisateur.class))).thenReturn(true);
+        when(utilisateurApiMock.creerUtilisateur(any(tp2.exo3.Utilisateur.class))).thenReturn(true);
 
-        UserService userService = new UserService(utilisateurApiMock);
         userService.creerUtilisateur(user);
 
-        verify(utilisateurApiMock).creerUtilisateur(argumentCaptor.capture());
+        ArgumentCaptor<Utilisateur> captor = ArgumentCaptor.forClass(Utilisateur.class);
+        verify(utilisateurApiMock).creerUtilisateur(captor.capture());
 
-        Utilisateur utilisateurCapture = argumentCaptor.getValue();
-        assertEquals("Karim", utilisateurCapture.getPrenom());
-        assertEquals("Ziani", utilisateurCapture.getNom());
-        assertEquals("kziani@email.com", utilisateurCapture.getEmail());
+        Utilisateur captured = captor.getValue();
+        assertEquals("Karim", captured.getPrenom());
+        assertEquals("Ziani", captured.getNom());
+        assertEquals("kziani@email.com", captured.getEmail());
     }
 }

@@ -4,8 +4,8 @@ public class Utilisateur {
     private String prenom;
     private String nom;
     private String email;
+    private int id;
 
-    // Constructeur
     public Utilisateur(String prenom, String nom, String email) {
         this.prenom = prenom;
         this.nom = nom;
@@ -25,7 +25,11 @@ public class Utilisateur {
         return email;
     }
 
-    // Setters (optionnels, à activer si besoin)
+    public int getId() {
+        return id;
+    }
+
+    // Setters
     public void setPrenom(String prenom) {
         this.prenom = prenom;
     }
@@ -38,16 +42,18 @@ public class Utilisateur {
         this.email = email;
     }
 
-    // Redéfinition toString (utile en debug/logs)
+    public void setId(int id) {
+        this.id = id;
+    }
+
     @Override
     public String toString() {
         return "Utilisateur{" +
                 "prenom='" + prenom + '\'' +
                 ", nom='" + nom + '\'' +
                 ", email='" + email + '\'' +
+                ", id=" + id +
                 '}';
     }
-
-    // Optionnel : equals() et hashCode() si tu compares des utilisateurs dans tes tests
 }
 
